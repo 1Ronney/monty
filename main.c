@@ -1,47 +1,41 @@
 #include "monty.h"
 
-/* global struct to hold flag for queue and stack length */
-var_t var;
+vars_t *element;
 
 /**
- * main - Monty bytecode interpreter
- * @argc: number of arguments passed
- * @argv: array of argument strings
- *
- * Return: EXIT_SUCCESS on success or EXIT_FAILURE on failure
- */
-int main(int argc, char *argv[])
+  * main - Entry Point
+  * @argc: Number of arguments
+  * @argv: Arguments names
+  * Return: 0 on success, exit on failures
+  */
+int main(int argc, char **argv)
 {
-	stack_t *stack = NULL;
-	unsigned int line_number = 0;
-	FILE *fs = NULL;
-	char *lineptr = NULL, *op = NULL;
 	size_t n = 0;
+	vars_t temp = {0, NULL, NULL, NULL, NULL, NULL, 1};
 
-	var.queue = 0;
-	var.stack_len = 0;
+	element = &temp;
+	element->fname = argv[1];
 	if (argc != 2)
+		exit_function(16);
+
+	element->fp = fopen(argv[1], "r");
+	if (element->fp == NULL)
+		exit_function(1);
+
+	for (; getline(&(element->buf), &n, element->fp) != EOF;
+		element->line_number++)
 	{
-		dprintf(STDOUT_FILENO, "USAGE: monty file\n");
-		exit(EXIT_FAILURE);
+		element->tokened = malloc(sizeof(char *) * 2);
+		if (element->tokened == NULL)
+			exit_function(3);
+		get_tokens(element->buf);
+		opcode_search();
+		free_buffer();
+		free_token();
 	}
-	fs = fopen(argv[1], "r");
-	if (fs == NULL)
-	{
-		dprintf(STDOUT_FILENO, "Error: Can't open file %s\n", argv[1]);
-		exit(EXIT_FAILURE);
-	}
-	on_exit(free_lineptr, &lineptr);
-	on_exit(free_stack, &stack);
-	on_exit(m_fs_close, fs);
-	while (getline(&lineptr, &n, fs) != -1)
-	{
-		line_number++;
-		op = strtok(lineptr, "\n\t\r ");
-		if (op != NULL && op[0] != '#')
-		{
-			get_op(op, &stack, line_number);
-		}
-	}
-	exit(EXIT_SUCCESS);
+	free_buffer();
+	free_list(element->head);
+	free_token();
+	fclose(element->fp);
+	return (0);
 }
